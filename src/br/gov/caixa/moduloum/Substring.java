@@ -1,4 +1,4 @@
-package br.gov.caixa;
+package br.gov.caixa.moduloum;
 
 public class Substring {
     public static void main(String[] args) {

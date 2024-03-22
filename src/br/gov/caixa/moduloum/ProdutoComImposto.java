@@ -1,4 +1,4 @@
-package br.gov.caixa;
+package br.gov.caixa.moduloum;
 
 import java.text.DecimalFormat;
 import java.util.Scanner;
