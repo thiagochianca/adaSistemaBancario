@@ -1,6 +1,5 @@
 package br.gov.caixa.projetoSegundoModulo.Verification;
 
-import br.gov.caixa.projetoSegundoModulo.Model.Classificacao;
 import br.gov.caixa.projetoSegundoModulo.Model.Conta;
 
 public class VerificacaoTransferencia implements Verificacao{
