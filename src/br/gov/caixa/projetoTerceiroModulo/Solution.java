@@ -2,6 +2,7 @@ package br.gov.caixa.projetoTerceiroModulo;
 
 import br.gov.caixa.projetoTerceiroModulo.model.*;
 import br.gov.caixa.projetoTerceiroModulo.service.*;
+
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.file.Files;
@@ -10,60 +11,43 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
-
+import java.util.stream.Stream;
 
 public class Solution {
     public static void main(String[] args) throws IOException {
 
-        final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-
         Path arquivoClientes = Path.of("C:/Users/c148738/IdeaProjects/myFirstProject/src/br/gov/caixa/projetoTerceiroModulo/pessoas.csv");
-        List<String> linhasArquivo = Files.readAllLines(arquivoClientes);
+        Stream<String> linhasArquivo = Files.lines(arquivoClientes);
 
-        ServicoDeposito deposito = new ServicoDeposito();
-
-        List<String> clientesPJ = linhasArquivo
-                .stream()
+        List<String> clientes = linhasArquivo
                 .skip(1)
                 .map(linha -> linha.split(","))
-                .filter(coluna -> "1".equals(coluna[3]))
-                .map(linha -> {
-                    ClientePJ cliente = new ClientePJ(linha[2], linha[0]);
-                    deposito.executarOperacao(cliente.getContaCorrente(), BigDecimal.valueOf(50));
-                    return cliente;
-                })
-                .map(cliente -> cliente.getNome() + ";" + cliente.getId() + ";PJ;" + cliente.getContaCorrente().getId() + ";" + cliente.getContaCorrente().consultarSaldo())
+                .filter(coluna -> verificarIdadePF(coluna))
+                .map(linha -> criarClientePromocional(linha))
+                .map(cliente -> transformarClienteEmLinhaDeArquivo(cliente))
                 .toList();
 
 
-        List<String> clientesPF = linhasArquivo
-                .stream()
-                .skip(1)
-                .map(linha -> linha.split(","))
-                .filter(coluna -> "2".equals(coluna[3]))
-                .filter(coluna -> ChronoUnit.YEARS.between(LocalDate.parse(coluna[1], DATE_TIME_FORMATTER), LocalDate.now()) > 17L)
-                .map(linha -> {
-                    ClientePF cliente = new ClientePF(linha[2], linha[0]);
-                    deposito.executarOperacao(cliente.getContaCorrente(), BigDecimal.valueOf(50));
-                    return cliente;
-                })
-                .map(cliente -> cliente.getNome() + ";" + cliente.getId() + ";PF;" + cliente.getContaCorrente().getId() + ";" + cliente.getContaCorrente().consultarSaldo())
-                .toList();
-
-
-        try {
-            Path destino = Path.of("C:/Users/c148738/IdeaProjects/myFirstProject/src/br/gov/caixa/projetoTerceiroModulo/output/");
-            if (Files.notExists(destino)) {
-                Files.createDirectories(destino);
-            }
-            Path arquivoPF = destino.resolve("PF.csv");
-            Files.write(arquivoPF, clientesPF);
-            Path arquivoPJ = destino.resolve("PJ.csv");
-            Files.write(arquivoPJ, clientesPJ);
-
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        Path destino = Path.of("C:/Users/c148738/IdeaProjects/myFirstProject/src/br/gov/caixa/projetoTerceiroModulo/output/");
+        Path arquivo = destino.resolve("clientes.csv");
+        Files.write(arquivo, clientes);
 
     }
+
+    static boolean verificarIdadePF(String[] coluna) {
+        DateTimeFormatter format = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        return ("2".equals(coluna[3])) ? ChronoUnit.YEARS.between(LocalDate.parse(coluna[1], format), LocalDate.now()) > 17L : true;
+    }
+
+    static String transformarClienteEmLinhaDeArquivo(Cliente cliente) {
+        return cliente.getNome() + ";" + cliente.getId() + ";" + (cliente instanceof ClientePF ? "PF" : "PJ" ) + ";"
+                + cliente.getContaCorrente().getId() + ";" + cliente.getContaCorrente().consultarSaldo();
+    }
+    static Cliente criarClientePromocional(String[] linha) {
+        Cliente cliente = ("1".equals(linha[3])) ? new ClientePJ(linha[2], linha[0]) : new ClientePF(linha[2], linha[0]);
+        ServicoDeposito deposito = new ServicoDeposito();
+        deposito.executarOperacao(cliente.getContaCorrente(), BigDecimal.valueOf(50));
+        return cliente;
+    }
+
 }
